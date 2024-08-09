@@ -1,30 +1,32 @@
+# frozen_string_literal: true
+
 require 'spec_helper_acceptance'
 
 describe 'jenkins::job' do
   let(:test_build_job) do
-    example = <<'EOS'
-<?xml version='1.0' encoding='UTF-8'?>
-<project>
-  <actions/>
-  <description>test job</description>
-  <keepDependencies>false</keepDependencies>
-  <properties/>
-  <scm class="hudson.scm.NullSCM"/>
-  <canRoam>true</canRoam>
-  <disabled>false</disabled>
-  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
-  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
-  <triggers/>
-  <concurrentBuild>false</concurrentBuild>
-  <builders>
-    <hudson.tasks.Shell>
-      <command>/usr/bin/true</command>
-    </hudson.tasks.Shell>
-  </builders>
-  <publishers/>
-  <buildWrappers/>
-</project>
-EOS
+    example = <<~EOS
+      <?xml version='1.0' encoding='UTF-8'?>
+      <project>
+        <actions/>
+        <description>test job</description>
+        <keepDependencies>false</keepDependencies>
+        <properties/>
+        <scm class="hudson.scm.NullSCM"/>
+        <canRoam>true</canRoam>
+        <disabled>false</disabled>
+        <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+        <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+        <triggers/>
+        <concurrentBuild>false</concurrentBuild>
+        <builders>
+          <hudson.tasks.Shell>
+            <command>/usr/bin/true</command>
+          </hudson.tasks.Shell>
+        </builders>
+        <publishers/>
+        <buildWrappers/>
+      </project>
+    EOS
     # escape single quotes for puppet
     example.gsub("'", %q(\\\'))
   end
@@ -37,7 +39,7 @@ EOS
       # the historical assumption is that this will work without cli => true
       # set on the jenkins class
       jenkins::job { 'test-build-job':
-        config => \'#{test_build_job}\',
+        config => '#{test_build_job}',
       }
       EOS
 
@@ -63,14 +65,14 @@ EOS
       pp_create = <<-EOS
         include jenkins
         jenkins::job {'test-noreplace-job':
-          config => \'#{test_build_job.gsub('<description>test job</description>', '<description>do not overwrite me</description>')}\',
+          config => '#{test_build_job.gsub('<description>test job</description>', '<description>do not overwrite me</description>')}',
         }
       EOS
 
       pp_update = <<-EOS
         include jenkins
         jenkins::job {'test-noreplace-job':
-          config  => \'#{test_build_job}\',
+          config  => '#{test_build_job}',
           replace => false,
         }
       EOS
@@ -95,7 +97,7 @@ EOS
       pp = <<-EOS
       include jenkins
       jenkins::job { 'test-build-job':
-        config => \'#{test_build_job}\',
+        config => '#{test_build_job}',
       }
       EOS
 
@@ -106,7 +108,7 @@ EOS
       include jenkins
       jenkins::job { 'test-build-job':
         ensure => 'absent',
-        config => \'#{test_build_job}\',
+        config => '#{test_build_job}',
       }
       EOS
 

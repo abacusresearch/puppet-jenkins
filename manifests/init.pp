@@ -2,10 +2,9 @@
 # This class manages the [Jenkins CI/CD service](https://jenkins.io/index.html).
 #
 # Note that if different jenkins listening port(s) are configured via
-# ``jenkins::port``, ``jenkins::config_hash`` and/or a ``jenkins::sysconf``
-# resource, "bad things" are likely to happen.  This is a known implementation
-# problem with this module that can not be fixed without breaking backwards
-# compatibility.
+# ``jenkins::port`` and ``jenkins::config_hash`` resource, "bad things" are
+# likely to happen.  This is a known implementation problem with this module
+# that can not be fixed without breaking backwards compatibility.
 #
 # @param version
 #   package to install
@@ -65,6 +64,9 @@
 #   * ``running`` (default)
 #   * ``stopped``
 #
+# @param service_override
+#   Override the jenkins service configuration
+#
 # @param service_provider
 #   Override ``Service[jenkins]`` resource provider
 #
@@ -79,8 +81,7 @@
 # @example Bulk sysconf
 #   class{ 'jenkins':
 #     config_hash => {
-#       'HTTP_PORT' => { 'value' => '9090' },
-#       'AJP_PORT'  => { 'value' => '9009' },
+#       'JENKINS_PORT' => { 'value' => '9090' },
 #     }
 #   }
 #
@@ -169,11 +170,9 @@
 #   install ``jenkins-cli.jar`` CLI utility
 #
 #   * force installation of the jenkins CLI jar to
-#   ``$libdir/cli/jenkins-cli.jar``
+#   ``$libdir/jenkins-cli.jar``
 #   * the cli is automatically installed when needed by components that use it,
 #     such as the user and credentials types, and the security class
-#   * CLI installation (both implicit and explicit) requires the ``unzip``
-#   command
 #
 # @param cli_ssh_keyfile
 #   Provides the location of an ssh private key file to make authenticated
@@ -206,16 +205,6 @@
 #
 # @param libdir
 #   Path to jenkins core files
-#
-#   * Redhat: ``/usr/lib/jenkins``
-#   * Debian: ``/usr/share/jenkins``
-#
-# @param sysconfdir
-#   Controls the path to the "sysconfig" file that stores jenkins service
-#   start-up variables
-#
-#   * RedHat: ``/etc/sysconfig/jenkins``
-#   * Debian: ``/etc/default/jenkins``
 #
 # @param manage_datadirs
 #   manage the local state dir, plugins dir and jobs dir
@@ -285,23 +274,24 @@
 #     # /support-core deps
 #
 class jenkins (
-  String $version                                 = $jenkins::params::version,
-  Boolean $lts                                    = $jenkins::params::lts,
+  String $version                                 = 'installed',
+  Boolean $lts                                    = true,
   Boolean $repo                                   = $jenkins::params::repo,
-  String $package_name                            = $jenkins::params::package_name,
-  Optional[String] $direct_download               = $jenkins::params::direct_download,
-  Stdlib::Absolutepath $package_cache_dir         = $jenkins::params::package_cache_dir,
+  String $package_name                            = 'jenkins',
+  Optional[String] $direct_download               = undef,
+  Stdlib::Absolutepath $package_cache_dir         = '/var/cache/jenkins_pkgs',
   Optional[String] $package_provider              = $jenkins::params::package_provider,
   Boolean $manage_service                         = true,
-  Boolean $service_enable                         = $jenkins::params::service_enable,
-  Enum['running', 'stopped'] $service_ensure      = $jenkins::params::service_ensure,
-  Optional[String] $service_provider              = $jenkins::params::service_provider,
+  Boolean $service_enable                         = true,
+  Enum['running', 'stopped'] $service_ensure      = 'running',
+  Hash[String[1], String] $service_override       = {},
+  Optional[String] $service_provider              = undef,
   Hash $config_hash                               = {},
   Hash $plugin_hash                               = {},
   Hash $job_hash                                  = {},
   Hash $user_hash                                 = {},
   Boolean $configure_firewall                     = false,
-  Boolean $install_java                           = $jenkins::params::install_java,
+  Boolean $install_java                           = true,
   Optional[String] $repo_proxy                    = undef,
   Optional[String] $proxy_host                    = undef,
   Optional[Integer] $proxy_port                   = undef,
@@ -311,22 +301,21 @@ class jenkins (
   Optional[String] $cli_username                  = undef,
   Optional[String] $cli_password                  = undef,
   Optional[String] $cli_password_file             = undef,
-  Integer $cli_tries                              = $jenkins::params::cli_tries,
-  Integer $cli_try_sleep                          = $jenkins::params::cli_try_sleep,
-  Integer $port                                   = $jenkins::params::port,
-  Stdlib::Absolutepath $libdir                    = $jenkins::params::libdir,
-  Stdlib::Absolutepath $sysconfdir                = $jenkins::params::sysconfdir,
-  Boolean $manage_datadirs                        = $jenkins::params::manage_datadirs,
-  Stdlib::Absolutepath $localstatedir             = $jenkins::params::localstatedir,
+  Integer $cli_tries                              = 10,
+  Integer $cli_try_sleep                          = 10,
+  Integer $port                                   = 8080,
+  Stdlib::Absolutepath $libdir                    = '/usr/share/java',
+  Boolean $manage_datadirs                        = true,
+  Stdlib::Absolutepath $localstatedir             = '/var/lib/jenkins',
   Optional[Integer] $executors                    = undef,
   Optional[Integer] $slaveagentport               = undef,
-  Boolean $manage_user                            = $jenkins::params::manage_user,
-  String $user                                    = $jenkins::params::user,
-  Boolean $manage_group                           = $jenkins::params::manage_group,
-  String $group                                   = $jenkins::params::group,
+  Boolean $manage_user                            = true,
+  String $user                                    = 'jenkins',
+  Boolean $manage_group                           = true,
+  String $group                                   = 'jenkins',
   Array $default_plugins                          = $jenkins::params::default_plugins,
-  String $default_plugins_host                    = $jenkins::params::default_plugins_host,
-  Boolean $purge_plugins                          = $jenkins::params::purge_plugins,
+  String $default_plugins_host                    = 'https://updates.jenkins.io',
+  Boolean $purge_plugins                          = false,
 ) inherits jenkins::params {
   if $purge_plugins and ! $manage_datadirs {
     warning('jenkins::purge_plugins has no effect unless jenkins::manage_datadirs is true')
@@ -336,7 +325,7 @@ class jenkins (
   if $cli_ssh_keyfile {
     # SSH key auth
     if empty($cli_username) {
-      fail('ERROR: Latest remoting free CLI (see https://issues.jenkins-ci.org/browse/JENKINS-41745) needs username for SSH Access (\$::jenkins::cli_username)')
+      fail('ERROR: Latest remoting free CLI (see https://issues.jenkins-ci.org/browse/JENKINS-41745) needs username for SSH Access (\$jenkins::cli_username)')
     }
     $_cli_auth_arg = "-i '${cli_ssh_keyfile}' -ssh -user '${cli_username}'"
   } elsif !empty($cli_username) {
@@ -392,17 +381,20 @@ class jenkins (
       notice(sprintf('INFO: make sure you install the following plugins with your code using this module: %s',join($jenkins::params::default_plugins,','))) # lint:ignore:140chars
     }
 
-    if $service_provider == 'systemd' {
-      jenkins::systemd { 'jenkins':
-        user   => $user,
-        libdir => $libdir,
-      }
+    # puppet/jenkins used to implement systemd but Jenkins 2.332 moved to
+    # systemd and implements this natively. Clean up the old implementation.
+    $old_libdir = $facts['os']['family'] ? {
+      'Archlinux' => '/usr/share/java/jenkins/',
+      'Debian'    => '/usr/share/jenkins',
+      default     => '/usr/lib/jenkins',
+    }
+    file { "${old_libdir}/jenkins-run":
+      ensure  => absent,
+    }
 
-      # jenkins::config manages the jenkins user resource, which is autorequired
-      # by the file resource for the run wrapper.
-      Class['jenkins::config']
-      -> Jenkins::Systemd['jenkins']
-      -> Anchor['jenkins::end']
+    file { '/etc/systemd/system/jenkins.service':
+      ensure => absent,
+      notify => Service['jenkins'],
     }
   }
 

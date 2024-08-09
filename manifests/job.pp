@@ -1,4 +1,4 @@
-# This class create a new jenkins job given a name and config xml
+# @summary Manage Jenkins jobs given a name and config xml
 #
 # @param config The content of the jenkins job config file (required)
 # @param source Path to a puppet file() resource containing the Jenkins XML job description.
@@ -13,7 +13,7 @@
 define jenkins::job (
   String $config,
   Optional[String] $source                  = undef,
-  Optional[Stdlib::Absolutepath] $template  = undef,
+  Optional[String[1]] $template             = undef,
   String $jobname                           = $title,
   Enum['present', 'absent'] $ensure         = 'present',
   String $difftool                          = '/usr/bin/diff -b -q',

@@ -35,12 +35,12 @@ This module has been adjusted to support the new CLI.
 
 The CLI supports proper authentication with username and password. It's a
 requirement for supporting AD and OpenID authentications (there is no ssh key
-there). You can supply ```$::jenkins::cli_username``` and
-```$::jenkins::cli_password``` to use username / password based authentication.
+there). You can supply ```$jenkins::cli_username``` and
+```$jenkins::cli_password``` to use username / password based authentication.
 Then the puppet automation user can also reside in A.D
 
 Note: Jenkins requires a ssh username, so you must also provide
-```$::jenkins::cli_username``` for ssh. If you specify both username/password
+```$jenkins::cli_username``` for ssh. If you specify both username/password
 and ssh key file, SSH authentication is preferred.
 
 # Using puppet-jenkins
@@ -207,7 +207,7 @@ configuration are all driven through this script.
 When an API-based resource is defined, the Jenkins' CLI is installed and run
 against the local system (127.0.0.1). Jenkins is assumed to be listening on
 port 8080, but the module is smart enough to notice if you've configured an
-alternate port using jenkins::config_hash['HTTP_PORT'].
+alternate port using jenkins::config_hash['JENKINS_PORT'].
 
 Users and credentials are Puppet-managed, meaning that changes made to them
 from outside Puppet will be reset at the next puppet run. In this way, you can

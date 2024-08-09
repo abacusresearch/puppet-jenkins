@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'jenkins::credentials' do
@@ -18,6 +20,7 @@ describe 'jenkins::credentials' do
           is_expected.to contain_jenkins__credentials('foo').
             that_requires('Class[jenkins::cli_helper]')
         end
+
         it do
           is_expected.to contain_jenkins__credentials('foo').
             that_comes_before('Anchor[jenkins::end]')
@@ -35,7 +38,7 @@ describe 'jenkins::credentials' do
         it {
           is_expected.to contain_jenkins__cli__exec('create-jenkins-credentials-foo').with(command: ['create_or_update_credentials', title.to_s, "'mypass'",
                                                                                                      "''", "'Managed by Puppet'", "''"],
-                                                                                           unless: "for i in \$(seq 1 10); do \$HELPER_CMD credential_info #{title} && break || sleep 10; done | grep #{title}")
+                                                                                           unless: "for i in $(seq 1 10); do $HELPER_CMD credential_info #{title} && break || sleep 10; done | grep #{title}")
         }
       end
 
@@ -62,7 +65,7 @@ describe 'jenkins::credentials' do
         it {
           is_expected.to contain_jenkins__cli__exec('create-jenkins-credentials-foo').with(command: ['create_or_update_credentials', title.to_s, "'mypass'",
                                                                                                      "'e94d3b98-5ba4-43b9-89ed-79a08ea97f6f'", "'Managed by Puppet'", "''"],
-                                                                                           unless: "for i in \$(seq 1 10); do \$HELPER_CMD credential_info #{title} && break || sleep 10; done | grep #{title}")
+                                                                                           unless: "for i in $(seq 1 10); do $HELPER_CMD credential_info #{title} && break || sleep 10; done | grep #{title}")
         }
       end
     end

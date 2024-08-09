@@ -1,5 +1,6 @@
+# frozen_string_literal: true
+
 require_relative '../jenkins'
-require 'json'
 
 module Puppet
   module Jenkins
@@ -15,6 +16,7 @@ module Puppet
         data = {}
         manifest_str.split("\n").each do |line|
           next if line.empty?
+
           # Parse out "Plugin-Version: 1.2" for example
           parts = line.split(': ')
 
@@ -42,6 +44,7 @@ module Puppet
       #   manifest data
       def self.available
         return {} unless exists?
+
         plugins = {}
         Dir.entries(Puppet::Jenkins.plugins_dir).each do |plugin|
           # Skip useless directories
@@ -72,23 +75,8 @@ module Puppet
         home = Puppet::Jenkins.home_dir
         return false if home.nil?
         return false unless File.directory? Puppet::Jenkins.plugins_dir
+
         true
-      end
-
-      # Parse the update-center.json file which Jenkins uses to maintain it's
-      # internal dependency graph for plugins
-      #
-      # This document is technically JSONP formatted so we must munge the file
-      # a bit to load the JSON bits properly
-      #
-      # @return [Hash] Parsed version of the update center JSON
-      def self.plugins_from_updatecenter(filename)
-        buffer = File.read(filename)
-        return {} if buffer.nil? || buffer.empty?
-
-        # Trim off the first and last lines, which are the JSONP gunk
-        data = JSON.parse(buffer.split("\n")[1...-1].join("\n"))
-        data['plugins'] || {}
       end
     end
   end

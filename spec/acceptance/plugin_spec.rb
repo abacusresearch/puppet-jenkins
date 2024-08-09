@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 require 'spec_helper_acceptance'
 
 describe 'jenkins class', order: :defined do
-  PDIR = '/var/lib/jenkins/plugins'.freeze
+  PDIR = '/var/lib/jenkins/plugins'
 
   # files/directories to test plugin purging removal of unmanaged files
   FILES = [
@@ -22,6 +24,7 @@ describe 'jenkins class', order: :defined do
     describe file("#{PDIR}/#{plugin}.hpi") do
       it { is_expected.to be_file }
     end
+
     describe file("#{PDIR}/#{plugin}") do
       it { is_expected.to be_directory }
     end
@@ -32,82 +35,69 @@ describe 'jenkins class', order: :defined do
       shell("mkdir -p #{DIRS.join(' ')}")
       shell("touch #{FILES.join(' ')}")
     end
+
     after(:context) do
       shell("rm -rf #{DIRS.join(' ')} #{FILES.join(' ')}")
     end
   end
 
   context 'default parameters' do
-    pp = <<-EOS
-    include jenkins
-    jenkins::plugin {'git-plugin':
-      name    => 'git',
-      version => '2.3.4',
-    }
-    EOS
-
-    apply2(pp)
+    include_examples 'an idempotent resource' do
+      let(:manifest) do
+        <<~PUPPET
+          include jenkins
+          jenkins::plugin {'git-plugin':
+            name    => 'git',
+            version => '2.3.4',
+          }
+        PUPPET
+      end
+    end
 
     it_behaves_like 'has_plugin', 'git'
   end
 
   describe 'plugin downgrade' do
     describe 'jquery3-api plugin' do
-      describe 'installs version 3.5.1-1' do
-        pp = <<-EOS
-        class {'jenkins':
-          purge_plugins => true,
-        }
+      describe 'installs version 3.6.0-r3' do
+        include_examples 'an idempotent resource' do
+          let(:manifest) do
+            <<~PUPPET
+              class {'jenkins':
+                purge_plugins => true,
+              }
 
-        # dependencies to prevent them from being purged
-        jenkins::plugin { ['jdk-tool', 'trilead-api']:
-          extension => 'jpi',
-        }
-
-        # actual plugin
-        jenkins::plugin { 'jquery3-api':
-          version => '3.5.1-1',
-        }
-        EOS
-
-        it 'works with no error' do
-          apply_manifest(pp, catch_failures: true)
-        end
-        it 'works idempotently' do
-          apply_manifest(pp, catch_changes: true)
+              # actual plugin
+              jenkins::plugin { 'jquery3-api':
+                version => '3.6.0-4',
+              }
+            PUPPET
+          end
         end
       end
 
-      describe 'downgrades to 3.4.1-10' do
-        pp = <<-EOS
-        package{'unzip':
-          ensure => present
-        }
-        class {'jenkins':
-          purge_plugins => true,
-        }
+      describe 'downgrades to 3.6.0-3' do
+        include_examples 'an idempotent resource' do
+          let(:manifest) do
+            <<~PUPPET
+              package{'unzip':
+                ensure => present
+              }
+              class {'jenkins':
+                purge_plugins => true,
+              }
 
-        # dependencies to prevent them from being purged
-        jenkins::plugin { ['jdk-tool', 'trilead-api']:
-          extension => 'jpi',
-        }
-
-        # actual plugin
-        jenkins::plugin { 'jquery3-api':
-          version => '3.4.1-10',
-        }
-        EOS
-
-        it 'works with no error' do
-          apply_manifest(pp, catch_failures: true)
-        end
-        it 'works idempotently' do
-          apply_manifest(pp, catch_changes: true)
+              # actual plugin
+              jenkins::plugin { 'jquery3-api':
+                version => '3.6.0-3',
+              }
+            PUPPET
+          end
         end
       end
 
-      describe command("unzip -p #{PDIR}/jquery3-api.hpi META-INF/MANIFEST.MF | sed 's/Plugin-Version: \\\(.*\\\)/\\1/;tx;d;:x'") do
-        its(:stdout) { is_expected.to eq("3.4.1-10\n") }
+      describe command("unzip -p #{PDIR}/jquery3-api.hpi META-INF/MANIFEST.MF | sed 's/Plugin-Version: \\(.*\\)/\\1/;tx;d;:x'") do
+        its(:stdout) { is_expected.to eq("3.6.0-3\n") }
       end
 
       it_behaves_like 'has_plugin', 'jquery3-api'
@@ -124,14 +114,9 @@ describe 'jenkins class', order: :defined do
           purge_plugins => true,
         }
 
-        # dependencies to prevent them from being purged
-        jenkins::plugin { ['jdk-tool', 'trilead-api']:
-          extension => 'jpi',
-        }
-
         # Actual plugin
         jenkins::plugin { 'jquery3-api':
-          version => '3.5.1-1',
+          version => '3.6.0-4',
         }
         EOS
 
@@ -146,7 +131,7 @@ describe 'jenkins class', order: :defined do
           it { is_expected.not_to exist }
         end
       end
-    end # true
+    end
 
     context 'false' do
       include_context 'plugin_test_files'
@@ -157,14 +142,9 @@ describe 'jenkins class', order: :defined do
           purge_plugins => false,
         }
 
-        # dependencies to prevent them from being purged
-        jenkins::plugin { ['jdk-tool', 'trilead-api']:
-          extension => 'jpi',
-        }
-
         # Actual plugin
         jenkins::plugin { 'jquery3-api':
-          version => '3.5.1-1',
+          version => '3.6.0-4',
         }
         EOS
 
@@ -185,6 +165,6 @@ describe 'jenkins class', order: :defined do
           it { is_expected.to be_file }
         end
       end
-    end # false
-  end # plugin purging
+    end
+  end
 end

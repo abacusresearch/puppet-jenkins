@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require File.join(File.dirname(__FILE__), '../../..', 'puppet/x/jenkins/util')
 require File.join(File.dirname(__FILE__), '../../..', 'puppet/x/jenkins/provider/cli')
 
@@ -75,7 +77,6 @@ Puppet::Type.type(:jenkins_security_realm).provide(:cli, parent: Puppet::X::Jenk
   end
   private_class_method :get_security_realm
 
-  # rubocop:disable Style/AccessorMethodName
   def set_jenkins_instance(input = nil)
     input ||= to_hash
 
@@ -90,5 +91,4 @@ Puppet::Type.type(:jenkins_security_realm).provide(:cli, parent: Puppet::X::Jenk
     }
     set_jenkins_instance(input)
   end
-  # rubocop:enable Style/AccessorMethodName
 end

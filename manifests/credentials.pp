@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Type jenkins::credentials
-#
-# Jenkins credentials (via the CloudBees Credentials plugin
-#
+# @summary Jenkins credentials via the CloudBees Credentials plugin
 define jenkins::credentials (
   String $password,
   String $description               = 'Managed by Puppet',
-  String $private_key_or_path       = '',
+  String $private_key_or_path       = '', # lint:ignore:params_empty_string_assignment
   Enum['present', 'absent'] $ensure = 'present',
-  String $uuid                      = '',
+  String $uuid                      = '', # lint:ignore:params_empty_string_assignment
 ) {
   include jenkins
   include jenkins::cli_helper
